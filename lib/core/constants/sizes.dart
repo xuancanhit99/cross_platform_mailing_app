@@ -1,0 +1,1 @@
+const cDefaultSize = 20.0;
