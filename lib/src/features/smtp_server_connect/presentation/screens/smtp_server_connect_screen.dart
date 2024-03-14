@@ -38,10 +38,24 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
         listener: (context, state) {
           if (state == SmtpConnectState.success) {
             // show success message
-            print('Connect to SMTP Server successfully');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Connect to SMTP Server successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            // print('Connect to SMTP Server successfully');
           } else if (state == SmtpConnectState.failure) {
             // show error message
-            print('Connect to SMTP Server failed');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Connect to SMTP Server failed'),
+                backgroundColor: Colors.redAccent,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            // print('Connect to SMTP Server failed');
           }
         },
         child: SafeArea(
