@@ -1,6 +1,17 @@
-class SmtpConnectEvent {
+abstract class SmtpConnectEvent {
+  const SmtpConnectEvent();
+}
+
+class SmtpConnectSelectServerEvent extends SmtpConnectEvent {
+  final String server;
+
+  const SmtpConnectSelectServerEvent(this.server);
+}
+
+
+class SmtpConnectLoginEvent extends SmtpConnectEvent {
   final String email;
   final String password;
 
-  SmtpConnectEvent.connect(this.email, this.password);
+  const SmtpConnectLoginEvent(this.email, this.password);
 }

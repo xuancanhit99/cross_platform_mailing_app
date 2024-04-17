@@ -8,8 +8,17 @@ import 'package:mailer/smtp_server.dart';
 final logger = Logger();
 
 class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
+
+  String selectedSmtpServer = '';
+
   SmtpConnectBloc() : super(SmtpConnectState.initial) {
-    on<SmtpConnectEvent>((event, emit) async {
+    on<SmtpConnectSelectServerEvent>((event, emit) {
+      selectedSmtpServer = event.server;
+      emit(SmtpConnectState.serverSelected);
+      print(selectedSmtpServer);
+    });
+
+    on<SmtpConnectLoginEvent>((event, emit) async {
       bool isConnected = await testSmtpConnection(event.email, event.password);
       if (isConnected) {
         emit(SmtpConnectState.success);
@@ -27,9 +36,8 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
   }
 
   Future<bool> testSmtpConnection(String email, String password) async {
-    final smtpServer = SmtpServer('smtp.mail.ru',
+    final smtpServer = SmtpServer(selectedSmtpServer,
         username: email, password: password, port: 465, ssl: true);
-
     final message = Message()
       ..from = Address(email)
       ..recipients.add(email)

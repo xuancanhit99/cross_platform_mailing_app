@@ -1,7 +1,7 @@
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/screens/smtp_server_connect_screen.dart';
 import 'package:flutter/material.dart';
 
-import 'core/utils/theme/theme.dart';
+import '../core/utils/theme/theme.dart';
 
 void main() {
   runApp(const MyApp());
