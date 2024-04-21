@@ -1,21 +1,37 @@
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_event.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:logger/logger.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
+import '../../data/models/smtp_server_info_model.dart';
+
 final logger = Logger();
 
 class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
+  List<SmtpServerInfoModel> smtpServers = [
+    const SmtpServerInfoModel(name: 'Gmail', address: 'smtp.gmail.com', port: 465, ssl: true, icon: FontAwesomeIcons.google),
+    const SmtpServerInfoModel(name: 'Yandex', address: 'smtp.yandex.com', port: 465, ssl: true, icon: FontAwesomeIcons.yandex),
+    const SmtpServerInfoModel(name: 'Mail.ru', address: 'smtp.mail.ru', port: 465, ssl: true, icon: FontAwesomeIcons.at),
+  ];
 
-  String selectedSmtpServer = '';
+  late SmtpServerInfoModel selectedSmtpServer;
 
   SmtpConnectBloc() : super(SmtpConnectState.initial) {
+    selectedSmtpServer = smtpServers[0];
+
     on<SmtpConnectSelectServerEvent>((event, emit) {
       selectedSmtpServer = event.server;
       emit(SmtpConnectState.serverSelected);
       print(selectedSmtpServer);
+    });
+
+    on<SmtpConnectAddServerEvent>((event, emit) {
+      smtpServers.add(event.server);
+      emit(SmtpConnectState.serverAdded);
+      print(smtpServers);
     });
 
     on<SmtpConnectLoginEvent>((event, emit) async {
@@ -36,8 +52,16 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
   }
 
   Future<bool> testSmtpConnection(String email, String password) async {
-    final smtpServer = SmtpServer(selectedSmtpServer,
-        username: email, password: password, port: 465, ssl: true);
+    print(selectedSmtpServer);
+    SmtpServer smtpServer;
+    if(selectedSmtpServer.address == 'smtp.gmail.com') {
+      smtpServer = gmail(email, password);
+    } else if (selectedSmtpServer.address == 'smtp.yandex.com') {
+      smtpServer = yandex(email, password);
+    } else {
+      smtpServer = SmtpServer(selectedSmtpServer.address,
+          username: email, password: password, port: 465, ssl: true);
+    }
     final message = Message()
       ..from = Address(email)
       ..recipients.add(email)

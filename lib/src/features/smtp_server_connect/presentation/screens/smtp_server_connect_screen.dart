@@ -1,14 +1,13 @@
 import 'package:cross_platform_mailing_app/core/constants/sizes.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_bloc.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../bloc/smtp_event.dart';
 import '../bloc/smtp_state.dart';
-
-
 
 class SMTPServerConnectScreen extends StatefulWidget {
   const SMTPServerConnectScreen({super.key});
@@ -22,18 +21,21 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
   final smtpServerController = TextEditingController(text: 'Gmail');
+  IconData currentIcon = FontAwesomeIcons.google;
 
   late SmtpConnectBloc _smtpConnectBloc;
   bool _isPasswordVisible = false;
 
-  IconData currentIcon = FontAwesomeIcons.google;
+
 
   @override
   void initState() {
     super.initState();
     _smtpConnectBloc = SmtpConnectBloc();
-    _smtpConnectBloc.add(const SmtpConnectSelectServerEvent('smtp.gmail.com')); // Set default server
+    // _smtpConnectBloc.add(const SmtpConnectSelectServerEvent(
+    //     'smtp.gmail.com')); // Set default server
   }
 
   @override
@@ -78,70 +80,106 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Server SMTP
-                          TextFormField(
-                            controller: smtpServerController,
-                            keyboardType: TextInputType.none,
-                            showCursor: false,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              prefixIcon: Icon(currentIcon),
-                              labelText: 'Server SMTP',
-                            ),
-                            onTap: () {
-                              showModalBottomSheet(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return Container(
-                                      child: Wrap(
-                                        children: <Widget>[
-                                          ListTile(
-                                            leading: Icon(FontAwesomeIcons.google),
-                                            title: Text('Gmail'),
-                                            onTap: () {
-                                              _smtpConnectBloc.add(const SmtpConnectSelectServerEvent('smtp.gmail.com'));
-                                              smtpServerController.text = 'Gmail';
-                                              setState(() {
-                                                currentIcon = FontAwesomeIcons.google;
-                                              });
-                                              Navigator.pop(context);
-                                            },
-                                          ),
-                                          ListTile(
-                                            leading: Icon(FontAwesomeIcons.yandex),
-                                            title: Text('Yandex'),
-                                            onTap: () {
-                                              _smtpConnectBloc.add(const SmtpConnectSelectServerEvent('smtp.yandex.com'));
-                                              smtpServerController.text = 'Yandex';
-                                              setState(() {
-                                                currentIcon = FontAwesomeIcons.yandex;
-                                              });
-                                              Navigator.pop(context);
-                                            },
-                                          ),
-                                          ListTile(
-                                            leading: Icon(FontAwesomeIcons.at),
-                                            title: Text('Mail.ru'),
-                                            onTap: () {
-                                              _smtpConnectBloc.add(const SmtpConnectSelectServerEvent('smtp.mail.ru'));
-                                              smtpServerController.text = 'Mail.ru';
-                                              setState(() {
-                                                currentIcon = FontAwesomeIcons.at;
-                                              });
-                                              Navigator.pop(context);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }
-                              );
-                            },
-                            validator: (value) {
-                              if (value!.isEmpty) {
-                                return 'Please enter server smtp';
-                              }
-                              return null;
-                            },
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: smtpServerController,
+                                  keyboardType: TextInputType.none,
+                                  showCursor: false,
+                                  readOnly: true,
+                                  decoration: InputDecoration(
+                                    prefixIcon: Icon(currentIcon),
+                                    labelText: 'Server SMTP',
+                                  ),
+                                  onTap: () {
+                                    showModalBottomSheet(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return Container(
+                                            padding: const EdgeInsets.all(20),
+                                            child: Wrap(
+                                              children: _smtpConnectBloc.smtpServers.map((server) {
+                                                return ListTile(
+                                                  leading: Icon(server.icon),
+                                                  title: Text(server.name),
+                                                  onTap: () {
+                                                    smtpServerController.text = server.name;
+                                                    _smtpConnectBloc.add(SmtpConnectSelectServerEvent(server));
+                                                    setState(() {
+                                                      currentIcon = server.icon;
+                                                    });
+                                                    Navigator.pop(context);
+                                                  },
+                                                );
+                                              }).toList(),
+                                            ),
+                                          );
+                                        });
+                                  },
+                                  validator: (value) {
+                                    if (value!.isEmpty) {
+                                      return 'Please enter server smtp';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: cDefaultSize),
+                              IconButton(
+                                  icon: const Icon(Icons.add_box_outlined),
+                                  onPressed: () {
+                                    showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return AlertDialog(
+                                            title:
+                                                const Text('Add SMTP Server'),
+                                            content: Column(
+                                              children: [
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    labelText: 'SMTP Server Address',
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: cDefaultSize,
+                                                ),
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    labelText: 'SMTP Server Port',
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: cDefaultSize,
+                                                ),
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    labelText: 'SSL',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text('Cancel')),
+                                              TextButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text('Add')),
+                                            ],
+                                          );
+                                        });
+                                  }),
+                              const SizedBox(width: cDefaultSize),
+                            ],
                           ),
                           const SizedBox(height: cDefaultSize),
                           // Sender's Email
@@ -174,12 +212,15 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible; // toggle password visibility state
+                                    _isPasswordVisible =
+                                        !_isPasswordVisible; // toggle password visibility state
                                   });
                                 },
                                 icon: Icon(
                                   // change the icon based on password visibility state
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                 ),
                               ),
                             ),
