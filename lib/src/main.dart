@@ -1,4 +1,4 @@
-import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/screens/smtp_server_connect_screen.dart';
+import 'package:cross_platform_mailing_app/src/features/main_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../core/utils/theme/theme.dart';
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       theme: CAppTheme.lightTheme,
       darkTheme: CAppTheme.darkTheme,
       themeMode: ThemeMode.light,
-      home: const SMTPServerConnectScreen(),
+      home: const MainScreen(),
     );
   }
 }

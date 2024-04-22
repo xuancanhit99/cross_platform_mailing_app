@@ -1,11 +1,11 @@
 import 'package:cross_platform_mailing_app/core/constants/sizes.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_bloc.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../data/models/smtp_server_info_model.dart';
 import '../bloc/smtp_event.dart';
 import '../bloc/smtp_state.dart';
 
@@ -28,7 +28,11 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
   late SmtpConnectBloc _smtpConnectBloc;
   bool _isPasswordVisible = false;
 
-
+  final _dialogFormKey = GlobalKey<FormState>();
+  final smtpServerNameController = TextEditingController();
+  final smtpServerAddressController = TextEditingController();
+  final smtpServerPortController = TextEditingController();
+  final smtpServerSSLController = TextEditingController(text: 'true');
 
   @override
   void initState() {
@@ -68,7 +72,15 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
         },
         child: SafeArea(
             child: Scaffold(
-          body: SingleChildScrollView(
+          appBar: AppBar(
+            title: const Text('Check Connection'),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {},
+            child: const Icon(Icons.add),
+          ),
+
+              body: SingleChildScrollView(
               child: Container(
                   padding: const EdgeInsets.all(cDefaultSize),
                   child: Form(
@@ -99,13 +111,18 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                                           return Container(
                                             padding: const EdgeInsets.all(20),
                                             child: Wrap(
-                                              children: _smtpConnectBloc.smtpServers.map((server) {
+                                              children: _smtpConnectBloc
+                                                  .smtpServers
+                                                  .map((server) {
                                                 return ListTile(
                                                   leading: Icon(server.icon),
                                                   title: Text(server.name),
                                                   onTap: () {
-                                                    smtpServerController.text = server.name;
-                                                    _smtpConnectBloc.add(SmtpConnectSelectServerEvent(server));
+                                                    smtpServerController.text =
+                                                        server.name;
+                                                    _smtpConnectBloc.add(
+                                                        SmtpConnectSelectServerEvent(
+                                                            server));
                                                     setState(() {
                                                       currentIcon = server.icon;
                                                     });
@@ -135,33 +152,103 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                                           return AlertDialog(
                                             title:
                                                 const Text('Add SMTP Server'),
-                                            content: Column(
-                                              children: [
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'SMTP Server Address',
+                                            content: Form(
+                                              key: _dialogFormKey,
+                                              child: Column(
+                                                children: [
+                                                  TextFormField(
+                                                    controller:
+                                                        smtpServerNameController,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText:
+                                                          'SMTP Server Name',
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value!.isEmpty) {
+                                                        return 'Please enter SMTP Server Name';
+                                                      }
+                                                      return null;
+                                                    },
                                                   ),
-                                                ),
-                                                const SizedBox(
-                                                  height: cDefaultSize,
-                                                ),
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'SMTP Server Port',
+                                                  const SizedBox(
+                                                    height: cDefaultSize,
                                                   ),
-                                                ),
-                                                const SizedBox(
-                                                  height: cDefaultSize,
-                                                ),
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'SSL',
+                                                  TextFormField(
+                                                    controller:
+                                                        smtpServerAddressController,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText:
+                                                          'SMTP Server Address',
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value!.isEmpty) {
+                                                        return 'Please enter SMTP Server Address';
+                                                      }
+                                                      return null;
+                                                    },
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(
+                                                    height: cDefaultSize,
+                                                  ),
+                                                  TextFormField(
+                                                    controller:
+                                                        smtpServerPortController,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText:
+                                                          'SMTP Server Port',
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value!.isEmpty) {
+                                                        return 'Please enter SMTP Server Port';
+                                                      }
+                                                      return null;
+                                                    },
+                                                  ),
+                                                  const SizedBox(
+                                                    height: cDefaultSize,
+                                                  ),
+                                                  DropdownButtonFormField<
+                                                      String>(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText:
+                                                          'SMTP Server SSL',
+                                                    ),
+                                                    value: smtpServerSSLController
+                                                            .text.isEmpty
+                                                        ? null
+                                                        : smtpServerSSLController
+                                                            .text,
+                                                    items: <String>[
+                                                      'true',
+                                                      'false'
+                                                    ].map<
+                                                            DropdownMenuItem<
+                                                                String>>(
+                                                        (String value) {
+                                                      return DropdownMenuItem<
+                                                          String>(
+                                                        value: value,
+                                                        child: Text(value),
+                                                      );
+                                                    }).toList(),
+                                                    onChanged:
+                                                        (String? newValue) {
+                                                      smtpServerSSLController
+                                                          .text = newValue!;
+                                                    },
+                                                    validator: (value) {
+                                                      if (value!.isEmpty) {
+                                                        return 'Please enter SMTP Server SSL';
+                                                      }
+                                                      return null;
+                                                    },
+                                                  )
+                                                ],
+                                              ),
                                             ),
                                             actions: [
                                               TextButton(
@@ -171,7 +258,68 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                                                   child: const Text('Cancel')),
                                               TextButton(
                                                   onPressed: () {
-                                                    Navigator.pop(context);
+                                                    if (_dialogFormKey
+                                                        .currentState!
+                                                        .validate()) {
+                                                      // Create a new SmtpServerInfoModel with the input values
+                                                      String name =
+                                                          smtpServerNameController
+                                                              .text;
+                                                      String address =
+                                                          smtpServerAddressController
+                                                              .text;
+                                                      int port = int.parse(
+                                                          smtpServerPortController
+                                                              .text);
+                                                      bool ssl =
+                                                          smtpServerSSLController
+                                                                  .text ==
+                                                              'true';
+                                                      SmtpServerInfoModel
+                                                          newSmtpServer =
+                                                          SmtpServerInfoModel(
+                                                              name: name,
+                                                              address: address,
+                                                              port: port,
+                                                              ssl: ssl,
+                                                              icon:
+                                                                  FontAwesomeIcons
+                                                                      .server);
+
+                                                      // Add the new server to the list
+                                                      _smtpConnectBloc.add(
+                                                          SmtpConnectAddServerEvent(
+                                                              newSmtpServer));
+
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'SMTP Server added successfully'),
+                                                          backgroundColor:
+                                                              Colors.green,
+                                                          duration: Duration(
+                                                              seconds: 3),
+                                                        ),
+                                                      );
+
+                                                      Navigator.pop(context);
+                                                    } else {
+                                                      // Show error message
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'Please fill all fields'),
+                                                          backgroundColor:
+                                                              Colors.redAccent,
+                                                          duration: Duration(
+                                                              seconds: 3),
+                                                        ),
+                                                      );
+                                                    }
                                                   },
                                                   child: const Text('Add')),
                                             ],
@@ -243,7 +391,10 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                                       passwordController.text));
                                 }
                               },
-                              child: const Text('Connect to SMTP Server'),
+                              child: const Text(
+                                'Connect to SMTP Server',
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ],
