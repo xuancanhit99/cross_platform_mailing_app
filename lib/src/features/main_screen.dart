@@ -1,4 +1,4 @@
-import 'package:cross_platform_mailing_app/src/features/send_email/send_mail_screen.dart';
+import 'package:cross_platform_mailing_app/src/features/send_email/presentation/screens/send_mail_screen.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/screens/smtp_server_connect_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +36,7 @@ class _MainScreenState extends State<MainScreen> {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.email),
-              label: 'SMTP Server Connect',
+              label: 'Check Connection',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.send),

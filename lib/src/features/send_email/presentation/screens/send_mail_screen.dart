@@ -1,26 +1,32 @@
-import 'package:cross_platform_mailing_app/core/constants/sizes.dart';
-import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_bloc.dart';
+import 'dart:io';
+
 import 'package:email_validator/email_validator.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../../data/models/smtp_server_info_model.dart';
-import '../bloc/smtp_event.dart';
-import '../bloc/smtp_state.dart';
+import '../../../../../core/constants/sizes.dart';
+import '../../../smtp_server_connect/data/models/smtp_server_info_model.dart';
+import '../../../smtp_server_connect/presentation/bloc/smtp_bloc.dart';
+import '../../../smtp_server_connect/presentation/bloc/smtp_event.dart';
+import '../../../smtp_server_connect/presentation/bloc/smtp_state.dart';
 
-class SMTPServerConnectScreen extends StatefulWidget {
-  const SMTPServerConnectScreen({super.key});
+class SendMailScreen extends StatefulWidget {
+  const SendMailScreen({super.key});
 
   @override
-  State<SMTPServerConnectScreen> createState() =>
-      _SMTPServerConnectScreenState();
+  State<SendMailScreen> createState() => _SendMailScreenState();
 }
 
-class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
+class _SendMailScreenState extends State<SendMailScreen> {
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final senderNameController = TextEditingController();
+  final senderEmailController = TextEditingController();
+  final senderPasswordController = TextEditingController();
+  final recipientEmailController = TextEditingController();
+  final subjectController = TextEditingController();
+  final messageController = TextEditingController();
 
   final smtpServerController = TextEditingController(text: 'Gmail');
   IconData currentIcon = FontAwesomeIcons.google;
@@ -34,12 +40,32 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
   final smtpServerPortController = TextEditingController();
   final smtpServerSSLController = TextEditingController(text: 'true');
 
+  List<File> attachments = [];
+
+  Future pickFiles() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+    );
+
+    if (result != null) {
+      List<File> files = result.paths.map((path) => File(path!)).toList();
+      setState(() {
+        attachments.addAll(files);
+      });
+
+      // Print the name of each file
+      for (var file in files) {
+        print('Selected file: ${file.path}');
+      }
+    }
+
+
+  }
+
   @override
   void initState() {
     super.initState();
     _smtpConnectBloc = SmtpConnectBloc();
-    // _smtpConnectBloc.add(const SmtpConnectSelectServerEvent(
-    //     'smtp.gmail.com')); // Set default server
   }
 
   @override
@@ -48,11 +74,11 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
       value: _smtpConnectBloc,
       child: BlocListener<SmtpConnectBloc, SmtpConnectState>(
         listener: (context, state) {
-          if (state == SmtpConnectState.success) {
+          if (state == SmtpConnectState.sendingEmail) {
             // show success message
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Connect to SMTP Server successfully'),
+                content: Text('Email sent successfully'),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 3),
               ),
@@ -73,7 +99,7 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
         child: SafeArea(
             child: Scaffold(
           appBar: AppBar(
-            title: const Text('Check Connection',
+            title: const Text('Send Mail',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ),
           body: SingleChildScrollView(
@@ -330,9 +356,25 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                             ],
                           ),
                           const SizedBox(height: cDefaultSize),
+                          // Sender's Name
+                          TextFormField(
+                            controller: senderNameController,
+                            keyboardType: TextInputType.name,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.person_outline_outlined),
+                              labelText: 'Senders\'s Name',
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) {
+                                return 'Please enter sender\'s Name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: cDefaultSize),
                           // Sender's Email
                           TextFormField(
-                            controller: emailController,
+                            controller: senderEmailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.outbox),
@@ -351,7 +393,7 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                           const SizedBox(height: cDefaultSize),
                           // Sender's Password
                           TextFormField(
-                            controller: passwordController,
+                            controller: senderPasswordController,
                             keyboardType: TextInputType.visiblePassword,
                             obscureText: !_isPasswordVisible,
                             decoration: InputDecoration(
@@ -380,19 +422,112 @@ class _SMTPServerConnectScreenState extends State<SMTPServerConnectScreen> {
                             },
                           ),
                           const SizedBox(height: cDefaultSize),
-                          // Connect to SMTP Server
+                          // Recipient's Email
+                          TextFormField(
+                            controller: recipientEmailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.alternate_email),
+                              labelText: 'Recipient\'s Email',
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) {
+                                return 'Please enter recipient\' email';
+                              } else if (!EmailValidator.validate(
+                                  value, true)) {
+                                return 'Please enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: cDefaultSize),
+                          // Subject
+                          TextFormField(
+                            controller: subjectController,
+                            keyboardType: TextInputType.text,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.subject),
+                              labelText: 'Subject',
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) {
+                                return 'Please enter subject';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: cDefaultSize),
+                          // Attachments
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: pickFiles,
+                              child: const Text('Pick Files'),
+                            ),
+                          ),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: attachments.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                title: Text(attachments[index].path.split('/').last),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    setState(() {
+                                      attachments.removeAt(index);
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: cDefaultSize),
+                          // Message
+                          TextFormField(
+                            controller: messageController,
+                            keyboardType: TextInputType.multiline,
+                            maxLines: 5,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.border_color),
+                              labelText: 'Message',
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(20)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(20)),
+                                borderSide: BorderSide(width: 2),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) {
+                                return 'Please enter message';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: cDefaultSize),
+                          // Send
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
-                                  _smtpConnectBloc.add(SmtpConnectLoginEvent(
-                                      emailController.text,
-                                      passwordController.text));
+                                  _smtpConnectBloc.add(SmtpSendMailEvent(
+                                    name: senderNameController.text,
+                                    email: senderEmailController.text,
+                                    password: senderPasswordController.text,
+                                    recipient: recipientEmailController.text,
+                                    subject: subjectController.text,
+                                    body: messageController.text,
+                                    attachments: attachments,
+                                  ));
                                 }
                               },
                               child: const Text(
-                                'Connect to SMTP Server',
+                                'Send',
                                 textAlign: TextAlign.center,
                               ),
                             ),

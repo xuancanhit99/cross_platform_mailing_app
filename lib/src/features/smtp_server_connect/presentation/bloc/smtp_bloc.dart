@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_event.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -49,6 +51,17 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
         logger.e('Connect to SMTP Server failed');
       }
     });
+
+    on<SmtpSendMailEvent>((event, emit) async {
+      bool isSent = await sendEmail(event.name, event.recipient, event.subject, event.body, event.email, event.password, event.attachments);
+      if (isSent) {
+        emit(SmtpConnectState.sendingEmail);
+        logger.i('Email sent successfully');
+      } else {
+        emit(SmtpConnectState.failure);
+        logger.e('Email sending failed');
+      }
+    });
   }
 
   Future<bool> testSmtpConnection(String email, String password) async {
@@ -78,4 +91,36 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
       return false;
     }
   }
+
+  Future<bool> sendEmail(String name, String recipient, String subject, String body, String email, String password, List<File> attachments) async {
+    SmtpServer smtpServer;
+    if(selectedSmtpServer.address == 'smtp.gmail.com') {
+      smtpServer = gmail(email, password);
+    } else if (selectedSmtpServer.address == 'smtp.yandex.com') {
+      smtpServer = yandex(email, password);
+    } else {
+      smtpServer = SmtpServer(selectedSmtpServer.address,
+          username: email, password: password, port: 465, ssl: true);
+    }
+    final message = Message()
+      ..from = Address(email, name)
+      ..recipients.add(recipient)
+      ..subject = subject
+      ..text = body;
+
+    print(attachments);
+    for (var file in attachments) {
+      message.attachments.add(FileAttachment(file));
+    }
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ' + sendReport.toString());
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+
 }
