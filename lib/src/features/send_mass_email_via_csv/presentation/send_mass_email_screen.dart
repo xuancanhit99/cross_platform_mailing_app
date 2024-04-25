@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:csv/csv.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,24 +9,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../../core/constants/sizes.dart';
-import '../../../smtp_server_connect/data/models/smtp_server_info_model.dart';
-import '../../../smtp_server_connect/presentation/bloc/smtp_bloc.dart';
-import '../../../smtp_server_connect/presentation/bloc/smtp_event.dart';
-import '../../../smtp_server_connect/presentation/bloc/smtp_state.dart';
+import '../../smtp_server_connect/data/models/smtp_server_info_model.dart';
+import '../../smtp_server_connect/presentation/bloc/smtp_bloc.dart';
+import '../../smtp_server_connect/presentation/bloc/smtp_event.dart';
+import '../../smtp_server_connect/presentation/bloc/smtp_state.dart';
 
-class SendMailScreen extends StatefulWidget {
-  const SendMailScreen({super.key});
+class SendMassMailScreen extends StatefulWidget {
+  const SendMassMailScreen({super.key});
 
   @override
-  State<SendMailScreen> createState() => _SendMailScreenState();
+  State<SendMassMailScreen> createState() => _SendMassMailScreenState();
 }
 
-class _SendMailScreenState extends State<SendMailScreen> {
+class _SendMassMailScreenState extends State<SendMassMailScreen> {
   final _formKey = GlobalKey<FormState>();
   final senderNameController = TextEditingController();
   final senderEmailController = TextEditingController();
   final senderPasswordController = TextEditingController();
-  final recipientEmailController = TextEditingController();
   final subjectController = TextEditingController();
   final messageController = TextEditingController();
 
@@ -42,24 +43,53 @@ class _SendMailScreenState extends State<SendMailScreen> {
 
   List<File> attachments = [];
 
-  Future pickFiles() async {
+  List<List<dynamic>> csvData = [];
+
+  List<Map<String, dynamic>>? structuredCsvData;
+
+// Function to pick a CSV file
+  Future pickCsvFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
     );
 
     if (result != null) {
-      List<File> files = result.paths.map((path) => File(path!)).toList();
-      setState(() {
-        attachments.addAll(files);
-      });
-
-      // Print the name of each file
-      for (var file in files) {
-        print('Selected file: ${file.path}');
-      }
+      File csvFile = File(result.files.single.path!);
+      csvData = await readCsvFile(csvFile);
+      setState(() {});
     }
+  }
 
+// Function to read a CSV file
+  Future<List<List<dynamic>>> readCsvFile(File file) async {
+    final input = File(file.path).openRead();
+    final fields = await input
+        .transform(utf8.decoder)
+        .transform(const CsvToListConverter(fieldDelimiter: ';'))
+        .toList();
+    return fields;
+  }
 
+// Function to send mass emails
+  void sendMassEmails(List<List<dynamic>> csvData) {
+    for (List<dynamic> row in csvData) {
+      String recipientEmail = row[0].toString().trim();
+      List<File> attachments = [];
+      for (int i = 1; i < row.length; i++) {
+        attachments.add(File(row[i].toString().trim()));
+      }
+
+      _smtpConnectBloc.add(SmtpSendMailEvent(
+        name: senderNameController.text,
+        email: senderEmailController.text,
+        password: senderPasswordController.text,
+        recipient: recipientEmail,
+        subject: subjectController.text,
+        body: messageController.text,
+        attachments: attachments,
+      ));
+    }
   }
 
   @override
@@ -99,7 +129,7 @@ class _SendMailScreenState extends State<SendMailScreen> {
         child: SafeArea(
             child: Scaffold(
           appBar: AppBar(
-            title: const Text('Send Mail',
+            title: const Text('Send Mass Email',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ),
           body: SingleChildScrollView(
@@ -133,22 +163,30 @@ class _SendMailScreenState extends State<SendMailScreen> {
                                           return Container(
                                             padding: const EdgeInsets.all(20),
                                             child: Wrap(
-                                              children: _smtpConnectBloc.smtpServers.map((server) {
+                                              children: _smtpConnectBloc
+                                                  .smtpServers
+                                                  .map((server) {
                                                 return ListTile(
                                                   leading: Icon(server.icon),
                                                   title: Text(server.name),
                                                   trailing: IconButton(
-                                                    icon: const Icon(Icons.delete),
+                                                    icon: const Icon(
+                                                        Icons.delete),
                                                     onPressed: () {
                                                       setState(() {
-                                                        _smtpConnectBloc.smtpServers.remove(server);
+                                                        _smtpConnectBloc
+                                                            .smtpServers
+                                                            .remove(server);
                                                       });
                                                       Navigator.pop(context);
                                                     },
                                                   ),
                                                   onTap: () {
-                                                    smtpServerController.text = server.name;
-                                                    _smtpConnectBloc.add(SmtpConnectSelectServerEvent(server));
+                                                    smtpServerController.text =
+                                                        server.name;
+                                                    _smtpConnectBloc.add(
+                                                        SmtpConnectSelectServerEvent(
+                                                            server));
                                                     setState(() {
                                                       currentIcon = server.icon;
                                                     });
@@ -422,25 +460,6 @@ class _SendMailScreenState extends State<SendMailScreen> {
                             },
                           ),
                           const SizedBox(height: cDefaultSize),
-                          // Recipient's Email
-                          TextFormField(
-                            controller: recipientEmailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.alternate_email),
-                              labelText: 'Recipient\'s Email',
-                            ),
-                            validator: (value) {
-                              if (value!.isEmpty) {
-                                return 'Please enter recipient\' email';
-                              } else if (!EmailValidator.validate(
-                                  value, true)) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: cDefaultSize),
                           // Subject
                           TextFormField(
                             controller: subjectController,
@@ -457,31 +476,27 @@ class _SendMailScreenState extends State<SendMailScreen> {
                             },
                           ),
                           const SizedBox(height: cDefaultSize),
-                          // Attachments
+                          // Pick CSV File
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: pickFiles,
-                              child: const Text('Pick Files'),
+                              onPressed: pickCsvFile,
+                              child: const Text('Pick CSV File'),
                             ),
                           ),
+                          const SizedBox(height: cDefaultSize-10),
                           ListView.builder(
                             shrinkWrap: true,
-                            itemCount: attachments.length,
+                            itemCount: csvData.length,
                             itemBuilder: (context, index) {
-                              return ListTile(
-                                title: Text(attachments[index].path.split('/').last),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () {
-                                    setState(() {
-                                      attachments.removeAt(index);
-                                    });
-                                  },
+                              return Card(
+                                child: ListTile(
+                                  title: Text((csvData[index]).join('      ')), // Display each row as a comma-separated string
                                 ),
                               );
                             },
                           ),
+
                           const SizedBox(height: cDefaultSize),
                           // Message
                           TextFormField(
@@ -515,15 +530,7 @@ class _SendMailScreenState extends State<SendMailScreen> {
                             child: ElevatedButton(
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
-                                  _smtpConnectBloc.add(SmtpSendMailEvent(
-                                    name: senderNameController.text,
-                                    email: senderEmailController.text,
-                                    password: senderPasswordController.text,
-                                    recipient: recipientEmailController.text,
-                                    subject: subjectController.text,
-                                    body: messageController.text,
-                                    attachments: attachments,
-                                  ));
+                                  sendMassEmails(csvData!);
                                 }
                               },
                               child: const Text(

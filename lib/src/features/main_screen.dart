@@ -1,6 +1,8 @@
-import 'package:cross_platform_mailing_app/src/features/send_email/presentation/screens/send_mail_screen.dart';
+import 'package:cross_platform_mailing_app/src/features/send_email/presentation/screens/send_email_screen.dart';
+import 'package:cross_platform_mailing_app/src/features/send_mass_email_via_csv/presentation/send_mass_email_screen.dart';
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/screens/smtp_server_connect_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,7 +16,8 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<Widget> _children = [
     const SMTPServerConnectScreen(),
-    const SendMailScreen(), // Replace with your SendMailScreen
+    const SendMailScreen(),
+    const SendMassMailScreen(),
   ];
 
 
@@ -35,12 +38,16 @@ class _MainScreenState extends State<MainScreen> {
           currentIndex: _currentIndex,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.email),
+              icon: Icon(FontAwesomeIcons.connectdevelop),
               label: 'Check Connection',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.send),
-              label: 'Send Mail',
+              label: 'Send Email',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(FontAwesomeIcons.mailBulk),
+              label: 'Send Mass Email Via CSV',
             ),
           ],
         ),
