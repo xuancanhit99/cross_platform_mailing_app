@@ -44,3 +44,25 @@ class SmtpSendMailEvent extends SmtpConnectEvent {
     required this.attachments,
   });
 }
+
+class SmtpSendEmailViaURLPostEvent extends SmtpConnectEvent {
+  final String webserviceUrl;
+  final String name;
+  final String recipient;
+  final String subject;
+  final String body;
+  final String email;
+  final String password;
+  final List<File> attachments;
+
+  const SmtpSendEmailViaURLPostEvent({
+    required this.webserviceUrl,
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.recipient,
+    required this.subject,
+    required this.body,
+    required this.attachments,
+  });
+}

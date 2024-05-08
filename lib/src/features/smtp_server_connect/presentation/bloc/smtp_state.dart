@@ -6,4 +6,5 @@ enum SmtpConnectState {
   serverSelected,
   serverAdded,
   sendingEmail,
+  sendingEmailViaURLPost,
 }

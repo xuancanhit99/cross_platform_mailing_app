@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cross_platform_mailing_app/src/features/smtp_server_connect/presentation/bloc/smtp_event.dart';
@@ -7,6 +8,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:logger/logger.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
+import 'package:http/http.dart' as http;
 
 import '../../data/models/smtp_server_info_model.dart';
 
@@ -56,6 +58,17 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
       bool isSent = await sendEmail(event.name, event.recipient, event.subject, event.body, event.email, event.password, event.attachments);
       if (isSent) {
         emit(SmtpConnectState.sendingEmail);
+        logger.i('Email sent successfully');
+      } else {
+        emit(SmtpConnectState.failure);
+        logger.e('Email sending failed');
+      }
+    });
+
+    on<SmtpSendEmailViaURLPostEvent>((event, emit) async {
+      bool isSent = await sendPostRequest(event.webserviceUrl, event.name, event.recipient, event.subject, event.body, event.email, event.password, event.attachments);
+      if (isSent) {
+        emit(SmtpConnectState.sendingEmailViaURLPost);
         logger.i('Email sent successfully');
       } else {
         emit(SmtpConnectState.failure);
@@ -122,5 +135,40 @@ class SmtpConnectBloc extends Bloc<SmtpConnectEvent, SmtpConnectState> {
     }
   }
 
+  Future<bool> sendPostRequest(String webserviceUrl, String name, String recipient, String subject, String body, String email, String password, List<File> attachments) async {
+    List<String> filePaths = attachments.map((file) => file.path).toList();
+    var url = Uri.parse(webserviceUrl);
 
+
+    var jsonData = <String, dynamic>{
+      'subject': subject,
+      'sender': email,
+      'recipients': recipient,
+      'body': body,
+      'attachments': filePaths,
+      'mail_server': selectedSmtpServer.address,
+      'mail_port': 587,
+      'use_tls': true,
+      'mail_username': email,
+      'mail_password': password,
+    };
+
+    print('JSON body: ${jsonEncode(jsonData)}');
+
+    var response = await http.post(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(jsonData),
+    );
+
+    if (response.statusCode == 200) {
+      print('Success: ${response.statusCode} + ${response.body}');
+      return true;
+    } else {
+      print('Error: ${response.statusCode} + ${response.body}');
+      return false;
+    }
+  }
 }
